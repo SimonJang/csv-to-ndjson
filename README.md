@@ -37,7 +37,7 @@ csvToNdjson('financialdata.csv', {
 
 Type: `string`
 
-Path of the CSV file to be read. The file has to end with the `.csv` file extenstion.
+Path of the CSV file to be read. The file has to end with the `.csv` file extension.
 
 #### options
 
