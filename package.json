@@ -1,7 +1,7 @@
 {
 	"name": "csv-to-ndjson",
 	"version": "0.0.0",
-	"description": "Convert a CSV file to ndjson format",
+	"description": "Convert a CSV file to ndjson format stream",
 	"license": "MIT",
 	"repository": "SimonJang/csv-to-ndjson",
 	"author": {
@@ -19,14 +19,21 @@
 		"index.js"
 	],
 	"keywords": [
-		""
+		"csv",
+		"transform",
+		"ndjson",
+		"stream",
+		"file"
 	],
 	"dependencies": {
 		"csv": "^1.1.1",
-		"is-valid-path": "^0.1.1"
+		"is-valid-path": "^0.1.1",
+		"pify": "^3.0.0"
 	},
 	"devDependencies": {
 		"ava": "^0.20.0",
+		"get-stream": "^3.0.0",
+		"tempy": "^0.1.0",
 		"xo": "^0.18.2"
 	}
 }
