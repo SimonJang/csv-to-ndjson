@@ -1,6 +1,6 @@
 {
   "name": "csv-to-ndjson",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Convert a CSV file to ndjson format stream",
   "license": "MIT",
   "repository": "SimonJang/csv-to-ndjson",
