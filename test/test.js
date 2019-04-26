@@ -21,6 +21,20 @@ test('should fail on invalid header argument', t => {
 	}}));
 });
 
+test('should fail because of internal parser error', async t => {
+	let resultError;
+	const header = ['Name', 'agE', 'pLace'];
+	const ndjsonStream = csvToNDJSON('./test/csv-erroneous-test.csv', {header, delimiter: ';'});
+	ndjsonStream.on('error', error => {
+		resultError = error;
+	}).on('end', () => {
+		resultError = null;
+	});
+	await getStream.array(ndjsonStream).then(null, () => {});
+
+	t.deepEqual(resultError.message, 'Number of columns is inconsistent on line 2');
+});
+
 test('should fail on invalid header type', t => {
 	t.throws(() => csvToNDJSON('./test/csv-test-noheader.csv', {header: ['name', {age: 'ageTemplate'}, 12]}));
 });
