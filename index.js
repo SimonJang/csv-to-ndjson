@@ -48,7 +48,10 @@ module.exports = (path, options) => {
 
 	try {
 		const stream = fs.createReadStream(path)
-			.pipe(csv.parse({delimiter: options && options.delimiter ? options.delimiter : ','}))
+			.pipe(csv.parse({delimiter: options && options.delimiter ? options.delimiter : ','})
+				.on('error', err => {
+					stream.emit('error', err);
+				}))
 			.pipe(csv.transform(record => {
 				const result = {};
 
