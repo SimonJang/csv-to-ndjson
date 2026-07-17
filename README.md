@@ -1,4 +1,4 @@
-# csv-to-ndjson [![Build Status](https://travis-ci.org/SimonJang/csv-to-ndjson.svg?branch=master)](https://travis-ci.org/SimonJang/csv-to-ndjson)
+# csv-to-ndjson [![CI](https://github.com/SimonJang/csv-to-ndjson/actions/workflows/ci.yml/badge.svg?branch=master&event=push)](https://github.com/SimonJang/csv-to-ndjson/actions/workflows/ci.yml?query=branch%3Amaster+event%3Apush)
 
 > Convert a CSV file to [ndjson](http://ndjson.org/) format stream or file.
 
@@ -15,17 +15,20 @@ $ npm install csv-to-ndjson
 ```js
 const csvToNdjson = require('csv-to-ndjson');
 
-csvToNdjson('financialdata.csv', {
-	delimiter: ';'
+const ndjsonStream = csvToNdjson('financialdata.csv', {
+	delimiter: ';',
 	header: ['Q1', 'Q2', 'Q3', 'Q4']
-}).pipe(// Some pipe operation);
+});
+ndjsonStream.pipe(process.stdout);
 // => Returns a readable stream of ndjson
 
 csvToNdjson('financialdata.csv', {
 	delimiter: ';',
 	destination: 'financialdata.json',
 	header: ['Q1', 'Q2', 'Q3', 'Q4']
-}).then(succes => // do something on success)
+}).then(() => {
+	// The destination file has been written.
+});
 // => Returns a promise when the file is written
 ```
 
