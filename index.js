@@ -1,24 +1,8 @@
 'use strict';
-const fs = require('fs');
-const Buffer = require('buffer').Buffer;
-const Transform = require('stream').Transform;
+const fs = require('node:fs');
+const Transform = require('node:stream').Transform;
 const isValidPath = require('is-valid-path');
-
-if (!Buffer.from) {
-	Buffer.from = function (value, encoding) {
-		return new Buffer(value, encoding);
-	};
-}
-
-if (!Buffer.alloc) {
-	Buffer.alloc = function (size) {
-		const buffer = new Buffer(size);
-		buffer.fill(0);
-		return buffer;
-	};
-}
-
-const parse = require('csv-parse/lib/es5');
+const {parse} = require('csv-parse');
 
 const validateHeader = header => {
 	for (let index = 0; index < header.length; index++) {
@@ -86,7 +70,18 @@ module.exports = (path, options) => {
 	}
 
 	const source = fs.createReadStream(path);
-	const parser = parse({delimiter: options && options.delimiter ? options.delimiter : ','});
+	const parser = parse({
+		bom: true,
+		delimiter: options && options.delimiter ? options.delimiter : ',',
+		relax_column_count_less: true,
+		on_record(record, {error}) {
+			// Preserve the legacy parser's exception for a single empty field.
+			if (error && !(record.length === 1 && record[0] === '')) {
+				throw error;
+			}
+			return record;
+		}
+	});
 	const stream = new Transform({objectMode: true});
 	stream._transform = (record, encoding, callback) => {
 		try {

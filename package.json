@@ -14,7 +14,7 @@
     "url": "github.com/SimonJang"
   },
   "engines": {
-    "node": ">=4"
+    "node": ">=26"
   },
   "scripts": {
     "test": "node --test",
@@ -31,7 +31,7 @@
     "file"
   ],
   "dependencies": {
-    "csv-parse": "^4.16.3",
+    "csv-parse": "^7.0.2",
     "is-valid-path": "^0.1.1"
   }
 }

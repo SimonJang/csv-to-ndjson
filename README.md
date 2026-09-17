@@ -5,6 +5,8 @@
 
 ## Install
 
+Requires Node.js 26 or later.
+
 ```
 $ npm install csv-to-ndjson
 ```
@@ -31,6 +33,18 @@ csvToNdjson('financialdata.csv', {
 });
 // => Returns a promise when the file is written
 ```
+
+Both the returned stream and destination file contain one JSON object per line.
+Each record ends with LF (`\n`) on every platform, including Windows.
+
+## Migrating to 2.0.0
+
+- Node.js 26 or later is required. Earlier Node.js versions are no longer supported.
+- On Windows, output now uses LF (`\n`) instead of CRLF (`\r\n`). Update consumers
+  that compare exact bytes or split records using the platform's line ending.
+- CSV parsing errors now follow csv-parse 7. If you inspect error codes or messages,
+  update those checks; inconsistent field counts use
+  `CSV_RECORD_INCONSISTENT_FIELDS_LENGTH`.
 
 ## API
 
