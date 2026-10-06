@@ -328,6 +328,20 @@ test('forwards CSV parser errors and closes the stream pipeline', {timeout: 500}
 	assert.match(error.message, /quote/i);
 });
 
+test('forwards inconsistent semicolon record errors with custom headers and closes the pipeline', {timeout: 500}, async () => {
+	const captured = capturePipeline(() => csvToNdjson('./test/csv-erroneous-test.csv', {
+		header: ['Name', 'agE', 'pLace'],
+		delimiter: ';'
+	}));
+	const [error] = await Promise.all([
+		collectStreamFailure(captured.completion),
+		waitForPipelineClose(captured)
+	]);
+
+	assert.equal(error.code, 'CSV_RECORD_INCONSISTENT_FIELDS_LENGTH');
+	assert.equal(error.lines, 2);
+});
+
 test('closes every pipeline stream when a consumer destroys the returned stream', {timeout: 1000}, async () => {
 	const filePath = path.join(directory, 'large.csv');
 	fs.writeFileSync(filePath, 'name,value\n' + 'Ada,1\n'.repeat(500000));
