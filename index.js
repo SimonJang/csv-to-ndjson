@@ -1,13 +1,36 @@
 'use strict';
-const fs = require('fs');
-const eol = require('os').EOL;
-const csv = require('csv');
+const fs = require('node:fs');
+const Transform = require('node:stream').Transform;
 const isValidPath = require('is-valid-path');
-const pify = require('pify');
+const {parse} = require('csv-parse');
 
-const validateHeader = header => header.filter(x => typeof x !== 'string').length === 0;
+const validateHeader = header => {
+	for (let index = 0; index < header.length; index++) {
+		if (typeof header[index] !== 'string') {
+			return false;
+		}
+	}
+
+	return true;
+};
 const delimiters = [',', ';'];
-const pattern = /(.*?)\.(csv)/i;
+const pattern = /\.csv$/i;
+
+const teardown = streams => {
+	for (const stream of streams) {
+		if (typeof stream.unpipe === 'function') {
+			stream.unpipe();
+		}
+	}
+
+	for (const stream of streams) {
+		if (typeof stream.destroy === 'function') {
+			stream.destroy();
+		} else if (typeof stream.end === 'function') {
+			stream.end();
+		}
+	}
+};
 
 module.exports = (path, options) => {
 	let getHeader = false;
@@ -46,32 +69,98 @@ module.exports = (path, options) => {
 		}
 	}
 
-	try {
-		const stream = fs.createReadStream(path)
-			.pipe(csv.parse({delimiter: options && options.delimiter ? options.delimiter : ','}))
-			.pipe(csv.transform(record => {
-				const result = {};
-
-				if (!getHeader) {
-					getHeader = true;
-					csvHeader = record.map(item => item.toLowerCase());
-					return;
-				}
-
-				for (const attribute of csvHeader) {
-					result[attribute] = record[csvHeader.indexOf(attribute)];
-				}
-				return JSON.stringify(result) + eol;
-			}));
-
-		if (options && options.destination) {
-			stream.pipe(fs.createWriteStream(options.destination));
-			return pify(stream).on('end');
+	const source = fs.createReadStream(path);
+	const parser = parse({
+		bom: true,
+		delimiter: options && options.delimiter ? options.delimiter : ',',
+		relax_column_count_less: true,
+		on_record(record, {error}) {
+			// Preserve the legacy parser's exception for a single empty field.
+			if (error && !(record.length === 1 && record[0] === '')) {
+				throw error;
+			}
+			return record;
 		}
+	});
+	const stream = new Transform({objectMode: true});
+	stream._transform = (record, encoding, callback) => {
+		try {
+			const result = Object.create(null);
 
-		return stream;
-	} catch (err) {
-		console.error(err);
-		throw new Error('Tranforming CSV to ndjson failed');
+			if (!getHeader) {
+				getHeader = true;
+				csvHeader = record.map(item => item.toLowerCase());
+				callback();
+				return;
+			}
+
+			for (const attribute of csvHeader) {
+				result[attribute] = record[csvHeader.indexOf(attribute)];
+			}
+			callback(null, JSON.stringify(result) + '\n');
+		} catch (error) {
+			callback(error);
+		}
+	};
+
+	if (options && options.destination) {
+		const destination = fs.createWriteStream(options.destination);
+		const completion = new Promise((resolve, reject) => {
+			let settled = false;
+			const fail = error => {
+				if (!settled) {
+					settled = true;
+					teardown([source, parser, stream, destination]);
+					reject(error);
+				}
+			};
+			const finish = () => {
+				if (!settled) {
+					settled = true;
+					resolve();
+				}
+			};
+
+			source.on('error', fail);
+			parser.on('error', fail);
+			stream.on('error', fail);
+			destination.on('error', fail);
+			destination.on('finish', finish);
+		});
+
+		source.pipe(parser).pipe(stream).pipe(destination);
+		return completion;
 	}
+
+	let completed = false;
+	let failed = false;
+	const forwardFailure = error => {
+		if (!failed) {
+			failed = true;
+			teardown([source, parser, stream]);
+			stream.emit('error', error);
+		}
+	};
+	const closeOnTransformFailure = () => {
+		if (!failed) {
+			failed = true;
+			teardown([source, parser, stream]);
+		}
+	};
+	const closeUpstreamOnCancellation = () => {
+		if (!completed && !failed) {
+			failed = true;
+			teardown([source, parser]);
+		}
+	};
+
+	source.on('error', forwardFailure);
+	parser.on('error', forwardFailure);
+	stream.on('end', () => {
+		completed = true;
+	});
+	stream.on('error', closeOnTransformFailure);
+	stream.on('close', closeUpstreamOnCancellation);
+	source.pipe(parser).pipe(stream);
+	return stream;
 };

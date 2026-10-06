@@ -1,9 +1,11 @@
-# csv-to-ndjson [![Build Status](https://travis-ci.org/SimonJang/csv-to-ndjson.svg?branch=master)](https://travis-ci.org/SimonJang/csv-to-ndjson)
+# csv-to-ndjson [![CI](https://github.com/SimonJang/csv-to-ndjson/actions/workflows/ci.yml/badge.svg?branch=master&event=push)](https://github.com/SimonJang/csv-to-ndjson/actions/workflows/ci.yml?query=branch%3Amaster+event%3Apush)
 
 > Convert a CSV file to [ndjson](http://ndjson.org/) format stream or file.
 
 
 ## Install
+
+Requires Node.js 26 or later.
 
 ```
 $ npm install csv-to-ndjson
@@ -15,19 +17,34 @@ $ npm install csv-to-ndjson
 ```js
 const csvToNdjson = require('csv-to-ndjson');
 
-csvToNdjson('financialdata.csv', {
-	delimiter: ';'
+const ndjsonStream = csvToNdjson('financialdata.csv', {
+	delimiter: ';',
 	header: ['Q1', 'Q2', 'Q3', 'Q4']
-}).pipe(// Some pipe operation);
+});
+ndjsonStream.pipe(process.stdout);
 // => Returns a readable stream of ndjson
 
 csvToNdjson('financialdata.csv', {
 	delimiter: ';',
 	destination: 'financialdata.json',
 	header: ['Q1', 'Q2', 'Q3', 'Q4']
-}).then(succes => // do something on success)
+}).then(() => {
+	// The destination file has been written.
+});
 // => Returns a promise when the file is written
 ```
+
+Both the returned stream and destination file contain one JSON object per line.
+Each record ends with LF (`\n`) on every platform, including Windows.
+
+## Migrating to 2.0.0
+
+- Node.js 26 or later is required. Earlier Node.js versions are no longer supported.
+- On Windows, output now uses LF (`\n`) instead of CRLF (`\r\n`). Update consumers
+  that compare exact bytes or split records using the platform's line ending.
+- CSV parsing errors now follow csv-parse 7. If you inspect error codes or messages,
+  update those checks; inconsistent field counts use
+  `CSV_RECORD_INCONSISTENT_FIELDS_LENGTH`.
 
 ## API
 
